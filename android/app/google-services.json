@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1030000340590",
+    "firebase_url": "https://moodtracker-74086-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "moodtracker-74086",
+    "storage_bucket": "moodtracker-74086.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1030000340590:android:dd05360fab5f4fefed407f",
+        "android_client_info": {
+          "package_name": "com.example.summerproject"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1030000340590-r6f0ne8nvi78u30p8dq2tenhfmijkek5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBP0d0SAwfF0ho5S-AAvsLkf9CVzGtEReY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1030000340590-r6f0ne8nvi78u30p8dq2tenhfmijkek5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
