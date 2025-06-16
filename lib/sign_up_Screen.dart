@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Add intl to your pubspec.yaml
-import 'package:internship/daily-Logs.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:internship/routine_DailYLogsDecider.dart';
+
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -18,16 +18,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   DateTime? _selectedDob;
   bool _isLoading = false;
+
   Future<void> registerUser(String email, String password, String name) async {
     try {
       final UserCredential userCred = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      print("✅ User registered");
+      final uid = userCred.user!.uid;
+      await saveUserProfile(
+        uid: uid,
+        name: name,
+        email: email,
+        dob: _selectedDob!,
+        age: _calculatedAge!,
+      );
     } catch (e) {
       print("❌ Registration error: $e");
     }
   }
-
 
   int? get _calculatedAge {
     if (_selectedDob == null) return null;
@@ -39,6 +46,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
     return age;
   }
+
   Future<void> saveUserProfile({
     required String uid,
     required String name,
@@ -48,7 +56,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }) async {
     final userRef = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
-      databaseURL: 'https://moodtracker-74086-default-rtdb.asia-southeast1.firebasedatabase.app/',
+      databaseURL:
+      'https://moodtracker-74086-default-rtdb.asia-southeast1.firebasedatabase.app/',
     ).ref("Users/$uid");
 
     await userRef.set({
@@ -58,9 +67,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       "age": age,
     });
   }
-
-
-
 
   Future<void> _selectDob() async {
     final now = DateTime.now();
@@ -73,17 +79,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
-      builder: (context, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: Colors.amber,
-            onPrimary: Colors.black,
-            surface: Colors.black,
-            onSurface: Colors.white,
-          ),
-        ),
-        child: child!,
-      ),
     );
 
     if (picked != null) {
@@ -122,91 +117,125 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final formattedDob = _selectedDob != null ? DateFormat('dd MMM yyyy').format(_selectedDob!) : "Select Date of Birth";
-
+    final formattedDob = _selectedDob != null
+        ? DateFormat('dd MMM yyyy').format(_selectedDob!)
+        : "Select Date of Birth";
 
     return Scaffold(
-      backgroundColor: Colors.black54,
       appBar: AppBar(
-        title: const Text("Create Account", style: TextStyle(color: Colors.amber)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.amber),
+        title: const Text("Sign Up to Mindly", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Full Name",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.amber),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: _selectDob,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.centerLeft,
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.amber)),
-                  ),
-                  child: Text(
-                    formattedDob,
-                    style: const TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.amber),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.amber),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              _isLoading
-                  ? const CircularProgressIndicator(color: Colors.amber)
-                  : ElevatedButton(
-                onPressed: _signUp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                ),
-                child: const Text("Sign Up", style: TextStyle(fontSize: 16),),
-              ),
-            ],
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Background Image
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/LandingPage.png',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
+
+          // Darker overlay for better readability
+          Container(
+            color: Colors.black.withOpacity(0.5),
+          ),
+
+          // Form Content
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(top: 200, left: 24, right: 24, bottom: 24),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Full Name
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: "Full Name",
+                        border: UnderlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // DOB
+                    GestureDetector(
+                      onTap: _selectDob,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Colors.grey)),
+                        ),
+                        child: Text(
+                          formattedDob,
+                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Email
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        border: UnderlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Password
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        border: UnderlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Create Account Button
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                      onPressed: _signUp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        foregroundColor: Colors.amber,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text("Create Account", style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

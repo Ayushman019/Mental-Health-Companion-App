@@ -33,7 +33,7 @@ class MoodTrivia extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.amber.shade900.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber, width: 1.5),
+        border: Border.all(color: Colors.transparent, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +45,7 @@ class MoodTrivia extends StatelessWidget {
               Text(
                 "Note",
                 style: TextStyle(
-                  color: Colors.amber,
+                  color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
@@ -56,8 +56,8 @@ class MoodTrivia extends StatelessWidget {
           Text(
             triviaText,
             style: const TextStyle(
-              fontSize: 16,
-              color: Colors.amberAccent,
+              fontSize: 20,
+              color: Colors.white,
               fontStyle: FontStyle.italic,
             ),
           ),

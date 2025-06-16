@@ -6,7 +6,6 @@ import 'package:internship/mood_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:internship/dashboard_Screen.dart';
 import 'package:internship/routine_Checklist.dart';
-import 'package:intl/intl.dart';
 
 class DailyLogsScreen extends StatefulWidget {
   final User user;
@@ -29,7 +28,7 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
   void initState() {
     super.initState();
     _currentUser = widget.user;
-    _loadStreak(); // ⬅️ Load streak here
+    _loadStreak();
     _migrateOldMoodEntriesIfAny().then((_) {
       _loadMoodsFromFirebase();
     });
@@ -37,7 +36,7 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
 
   Future<void> _loadStreak() async {
     try {
-      final data = await fetchStreak(); // 👈 Use your helper function
+      final data = await fetchStreak();
       setState(() {
         streakCount = (data['count'] as num?)?.toInt() ?? 0;
         isStreakLoading = false;
@@ -45,7 +44,7 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
     } catch (e) {
       print("❌ Failed to load streak: $e");
       setState(() {
-        isStreakLoading = false; // Still stop the spinner
+        isStreakLoading = false;
       });
     }
   }
@@ -129,48 +128,64 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
 
   Widget _buildMoodLogView() {
     if (_moodEntries.isEmpty) {
-      return const Center(
-        child: Text("Start Adding Your Mood by Pressing + on the Top"),
+      return Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + kToolbarHeight + 24,
+        ),
+        child: const Center(
+          child: Text("Start Adding Your Mood by Pressing + on the Top"),
+        ),
       );
     }
 
-    return ListView.builder(
-      itemCount: _moodEntries.length,
-      itemBuilder: (ctx, index) {
-        final entry = _moodEntries[index];
-        return Dismissible(
-          key: ValueKey(entry.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: EdgeInsets.all(12),
-            color: Colors.red,
-            child: const Icon(Icons.delete, color: Colors.white),
-          ),
-          onDismissed: (direction) async {
-            final entryToRemove = _moodEntries[index];
-            final dBKey = FirebaseKeys[entryToRemove.id];
-            try {
-              if (dBKey != null) {
-                final dbRef = moodDbRef.child(_currentUser.uid).child(dBKey);
-                await dbRef.remove();
-                setState(() {
-                  _moodEntries.removeAt(index);
-                  FirebaseKeys.remove(entryToRemove.id);
-                });
+    _moodEntries.sort((a, b) => b.timeStamps.compareTo(a.timeStamps));
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + kToolbarHeight + 24,
+      ),
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 16),
+        itemCount: _moodEntries.length,
+        itemBuilder: (ctx, index) {
+          final entry = _moodEntries[index];
+          return Dismissible(
+            key: ValueKey(entry.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.all(12),
+              color: Colors.red,
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            onDismissed: (direction) async {
+              final entryToRemove = _moodEntries[index];
+              final dBKey = FirebaseKeys[entryToRemove.id];
+              try {
+                if (dBKey != null) {
+                  final dbRef = moodDbRef.child(_currentUser.uid).child(dBKey);
+                  await dbRef.remove();
+                  setState(() {
+                    _moodEntries.removeAt(index);
+                    FirebaseKeys.remove(entryToRemove.id);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Mood Entry Deleted Successfully.")),
+                  );
+                }
+              } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Mood Entry Deleted Successfully.")),
+                  SnackBar(content: Text("Failed to delete from Firebase: $e")),
                 );
               }
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Failed to delete from Firebase: $e")),
-              );
-            }
-          },
-          child: Card(
-            margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            child: Padding(
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue.shade700, width: 1.2),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white70,
+              ),
               padding: const EdgeInsets.all(12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,15 +196,19 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
                       children: [
                         Text(
                           entry.mood.name.toUpperCase(),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           entry.note ?? '',
-                          style: TextStyle(fontSize: 10, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
                         ),
                       ],
                     ),
@@ -199,18 +218,18 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
                     children: [
                       Text(
                         entry.intensity.toInt().toString(),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 16,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${entry.timeStamps.day}/${entry.timeStamps.month}/${entry.timeStamps.year}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.white12,
+                          color: Colors.black54,
                         ),
                       ),
                     ],
@@ -218,9 +237,9 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
                 ],
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -232,31 +251,41 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
     ];
 
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        leading: IconButton(onPressed: () {}, icon: Icon(Icons.person)),
-        title: Text(
-          "Hi MindNavigator!",
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.amber,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: const Icon(Icons.person, color: Colors.white),
+        title: const Padding(
+          padding: EdgeInsets.only(left: 8.0),
+          child: Text(
+            "Hi MindNavigator!",
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.white,
+            ),
           ),
         ),
         actions: [
           InkWell(
-            onTap: (){
-              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>RoutineChecklistScreen()),)
-              .then((_)=>_loadStreak());
+            onTap: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => RoutineChecklistScreen()))
+                  .then((_) => _loadStreak());
             },
             child: Row(
               children: [
-                Icon(Icons.local_fire_department_rounded,
-                    color: Colors.amberAccent),
+                const Icon(Icons.local_fire_department_rounded, color: Colors.amberAccent),
                 const SizedBox(width: 4),
                 isStreakLoading
                     ? const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
                     : Text(
                   streakCount.toString(),
@@ -271,27 +300,45 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
           ),
           IconButton(
             onPressed: _openMoodScreen,
-            icon: Icon(Icons.add),
-            color: Colors.amber,
+            icon: const Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onTabTapped,
-        backgroundColor: Colors.amber,
-        selectedItemColor: Colors.black,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Daily Logs',
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/xy.jpeg',
+              fit: BoxFit.cover,
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
+          _screens[_selectedIndex],
         ],
+      ),
+      bottomNavigationBar: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onTabTapped,
+          backgroundColor: Colors.blue,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.grey[300],
+          unselectedItemColor: Colors.yellow[500],
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list),
+              label: 'Daily Logs',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              label: 'Dashboard',
+            ),
+          ],
+        ),
       ),
     );
   }

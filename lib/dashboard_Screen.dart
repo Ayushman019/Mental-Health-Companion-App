@@ -1,5 +1,5 @@
+// import statements
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:internship/mood_model.dart';
@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:internship/mood_trivia.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:internship/google_fit.dart';
+import 'package:internship/RoutineMoodAnalysisScreen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -32,22 +33,18 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     fetchMoods();
     _startListeningToMoodData();
   }
+
   Future<void> fetchMoods() async {
     final ref = FirebaseDatabase.instance.ref().child("Mood_List");
-
-
     final snapshot = await ref.get();
 
     if (snapshot.exists) {
       final List<Mood> moods = [];
-
       final data = snapshot.value;
 
       if (data is Map) {
         for (final entry in data.entries) {
           final value = entry.value;
-
-          // Nested moods under user ID
           if (value is Map) {
             for (final moodEntry in value.entries) {
               final moodData = moodEntry.value;
@@ -55,49 +52,24 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 try {
                   final mood = Mood.fromMap(Map<String, dynamic>.from(moodData));
                   moods.add(mood);
-                  print('Parsed mood name: ${mood.mood}');
-                } catch (e) {
-                  print('Error parsing mood entry: $e');
-                }
+                } catch (_) {}
               }
             }
           }
-          // Flat mood entry (unlikely but safe)
-          else if (value is Map) {
-            try {
-              final mood = Mood.fromMap(Map<String, dynamic>.from(value));
-              moods.add(mood);
-              print('Parsed mood name: ${mood.mood}');
-            } catch (e) {
-              print('Error parsing mood entry: $e');
-            }
-          } else {
-            print('Skipping non-map entry: ${entry.key} => ${entry.value}');
-          }
         }
-      } else {
-        print('Snapshot root is not a Map');
       }
-
-      // Do something with moods list here or call setState if needed
-      // For example: calculate moodCounts, update UI, etc.
-
-    } else {
-      print("No data found.");
     }
   }
+
   void _startListeningToMoodData() {
     try {
       userMoodRef = moodDbRef;
-
       _moodSubscription?.cancel();
 
       _moodSubscription = userMoodRef.onValue.listen((DatabaseEvent event) {
         final snapshot = event.snapshot;
-        debugPrint("Snapshot received: ${snapshot.value}");
 
         if (!snapshot.exists) {
-          debugPrint("No data found.");
           setState(() {
             moodCounts = {};
             topMood = '';
@@ -110,31 +82,22 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         final data = snapshot.value as Map<dynamic, dynamic>;
         data.forEach((key, value) {
           if (value is Map) {
-            // Check if value looks like a mood entry (has 'mood' key)
             if (value.containsKey('mood')) {
               try {
                 final mood = Mood.fromMap(Map<String, dynamic>.from(value));
                 moodCounter[mood.mood.name] = (moodCounter[mood.mood.name] ?? 0) + 1;
-              } catch (e) {
-                debugPrint("Error parsing mood entry: $e");
-              }
+              } catch (_) {}
             } else {
-              // Otherwise, treat as nested user moods map
               final userMoods = Map<dynamic, dynamic>.from(value);
-              userMoods.forEach((moodId, moodData) {
+              userMoods.forEach((_, moodData) {
                 try {
                   final mood = Mood.fromMap(Map<String, dynamic>.from(moodData));
                   moodCounter[mood.mood.name] = (moodCounter[mood.mood.name] ?? 0) + 1;
-                } catch (e) {
-                  debugPrint("Error parsing nested mood entry: $e");
-                }
+                } catch (_) {}
               });
             }
-          } else {
-            debugPrint("Skipping non-map entry: $key => $value");
           }
         });
-
 
         String mostFrequentMood = '';
         double maxCount = 0;
@@ -151,8 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           topMoodCount = maxCount;
         });
       });
-    } catch (e) {
-      debugPrint("Exception in _startListeningToMoodData: $e");
+    } catch (_) {
       setState(() {
         moodCounts = {};
         topMood = '';
@@ -160,7 +122,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       });
     }
   }
-
 
   @override
   void dispose() {
@@ -175,101 +136,122 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     final percent = total == 0 ? "0" : (topMoodCount / total * 100).toStringAsFixed(1);
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header and Tabs
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12),
-              child: Row(
-                children: const [
-                  Text(
-                    "Mood Analysis",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/xy.jpeg"),
+                fit: BoxFit.cover,
               ),
             ),
-            TabBar(
-              controller: _tabController,
-              indicatorColor: Colors.amber,
-              labelColor: Colors.amber,
-              unselectedLabelColor: Colors.grey,
-              tabs: const [
-                Tab(text: "Overview"),
-                Tab(text: "Google-Fit"),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        "Mood Analysis",
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.blueAccent,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  tabs: const [
+                    Tab(text: "Overview"),
+                    Tab(text: "Routine Link"),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      moodCounts.isEmpty
+                          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+                          : SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 20),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  PieChart(
+                                    dataMap: moodCounts,
+                                    chartType: ChartType.ring,
+                                    animationDuration: const Duration(seconds: 1),
+                                    chartRadius: MediaQuery.of(context).size.width * 0.45,
+                                    legendOptions: const LegendOptions(
+                                      showLegends: false,
+                                    ),
+                                    chartValuesOptions: const ChartValuesOptions(
+                                      showChartValuesInPercentage: true,
+                                      showChartValueBackground: false,
+                                      decimalPlaces: 1,
+                                      chartValueStyle: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      "Your most frequent mood is $topMood\nwith $percent% of all entries.",
+                                      textAlign: TextAlign.left,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber.shade700,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                ),
+                                onPressed: () {
+                                  _startListeningToMoodData();
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: const Text("Refresh"),
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              MoodTrivia(mood: topMood),
+
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                      RoutineMoodAnalysisScreen(),
+                    ],
+                  ),
+                ),
               ],
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Overview Tab
-                  moodCounts.isEmpty
-                      ? const Center(child: CircularProgressIndicator(color: Colors.amber))
-                      : SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(height: 20),
-                        Text(
-                          "Your most frequent mood is $topMood\nwith $percent% of all entries.",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        PieChart(
-                          dataMap: moodCounts,
-                          chartType: ChartType.ring,
-                          animationDuration: const Duration(seconds: 1),
-                          chartRadius: MediaQuery.of(context).size.width / 2.2,
-                          legendOptions: const LegendOptions(
-                            showLegendsInRow: true,
-                            legendPosition: LegendPosition.bottom,
-                            legendTextStyle: TextStyle(color: Colors.amber),
-                          ),
-                          chartValuesOptions: const ChartValuesOptions(
-                            showChartValuesInPercentage: true,
-                            showChartValueBackground: false,
-                            decimalPlaces: 1,
-                            chartValueStyle: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.amber.shade700,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          ),
-                          onPressed: () {
-                            // You can re-start listener manually if needed
-                            _startListeningToMoodData();
-                          },
-                          icon: const Icon(Icons.refresh),
-                          label: const Text("Refresh"),
-                        ),
-                        const SizedBox(height: 24),
-                        MoodTrivia(mood: topMood),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-
-                  // History Tab Placeholder
-                  GoogleFitScreen(),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
