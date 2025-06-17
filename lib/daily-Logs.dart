@@ -6,6 +6,9 @@ import 'package:internship/mood_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:internship/dashboard_Screen.dart';
 import 'package:internship/routine_Checklist.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+
 
 class DailyLogsScreen extends StatefulWidget {
   final User user;
@@ -243,6 +246,23 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
     );
   }
 
+  void _launchEmergencyCall() async {
+    const phoneNumber = 'tel:18005990019';
+    final Uri launchUri = Uri.parse(phoneNumber);
+    if (await canLaunchUrlString(phoneNumber)) {
+      await launchUrlString(phoneNumber);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Could not launch dialer")),
+      );
+    }
+  }
+  void testDialCapability() async {
+    final Uri uri = Uri(scheme: 'tel', path: '12345');
+    bool canDial = await canLaunchUrl(uri);
+    print("📞 Can dial: $canDial");
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> _screens = [
@@ -340,6 +360,14 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _launchEmergencyCall,
+        backgroundColor: Colors.redAccent,
+        icon: Icon(Icons.call),
+        label: Text("Emergency"),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
     );
   }
 }

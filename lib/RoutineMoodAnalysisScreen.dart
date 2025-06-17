@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:internship/mood_parser.dart';
 import 'package:internship/mood_model.dart';
+
 class RoutineMoodAnalysisScreen extends StatefulWidget {
   @override
   _RoutineMoodAnalysisScreenState createState() => _RoutineMoodAnalysisScreenState();
@@ -36,18 +37,15 @@ class _RoutineMoodAnalysisScreenState extends State<RoutineMoodAnalysisScreen> {
     if (currentUser == null) return;
     final userId = currentUser!.uid;
 
-    // Fetch moods and parse using utility
+    // Fetch moods
     final moodSnapshot = await databaseReference
         .child('Mood_List')
         .child(userId)
         .child('moods')
         .once();
-    final parsedMoods = parseMoodSnapshot(moodSnapshot.snapshot); // ✅
+    final parsedMoods = parseMoodSnapshot(moodSnapshot.snapshot);
 
-
-    print("Parsed Moods: $parsedMoods"); // ✅ okay here
-    // Fetch routines (remains same)
-
+    // Fetch routines
     final routineSnapshot = await databaseReference
         .child('Mood_List')
         .child(userId)
@@ -55,12 +53,12 @@ class _RoutineMoodAnalysisScreenState extends State<RoutineMoodAnalysisScreen> {
         .once();
     final routineData = routineSnapshot.snapshot.value as Map<dynamic, dynamic>?;
 
-    Map<String, bool> tempRoutineCompletedByDate = {}; // 👈 declare here
+    Map<String, bool> tempRoutineCompletedByDate = {};
 
     if (routineData != null) {
       routineData.forEach((key, value) {
         final routineMap = Map<String, dynamic>.from(value);
-        if (routineMap.containsKey('scheduledDate') && routineMap.containsKey('completedToday')) {
+        if (routineMap.containsKey('scheduledDate')) {
           final date = routineMap['scheduledDate'];
           final completed = routineMap['completedToday'] == true;
           tempRoutineCompletedByDate[date] = completed;
@@ -68,14 +66,18 @@ class _RoutineMoodAnalysisScreenState extends State<RoutineMoodAnalysisScreen> {
       });
     }
 
-    print("Routine Data: $tempRoutineCompletedByDate"); // ✅ move here
+    // Ensure all mood dates have routine status
+    for (final date in parsedMoods.keys) {
+      if (!tempRoutineCompletedByDate.containsKey(date)) {
+        tempRoutineCompletedByDate[date] = false;
+      }
+    }
 
     setState(() {
       moodEntriesByDate = parsedMoods;
       routineCompletedByDate = tempRoutineCompletedByDate;
     });
   }
-
 
   List<BarChartGroupData> buildBarGroups() {
     List<String> sortedDates = moodEntriesByDate.keys.toList()..sort();
@@ -126,7 +128,7 @@ class _RoutineMoodAnalysisScreenState extends State<RoutineMoodAnalysisScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(width: 12, height: 12, color: entry.value),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Text(entry.key.name),
           ],
         );
@@ -155,7 +157,7 @@ class _RoutineMoodAnalysisScreenState extends State<RoutineMoodAnalysisScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
-              await fetchMoodData(); // manual refresh button
+              await fetchMoodData();
             },
           ),
         ],

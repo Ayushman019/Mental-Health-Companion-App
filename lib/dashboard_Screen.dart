@@ -1,5 +1,5 @@
-// import statements
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:internship/mood_model.dart';
@@ -9,6 +9,10 @@ import 'package:internship/mood_trivia.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:internship/google_fit.dart';
 import 'package:internship/RoutineMoodAnalysisScreen.dart';
+import 'package:internship/geoapify.dart';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'package:internship/NearbyPlaces.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,6 +26,64 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   Map<String, double> moodCounts = {};
   String topMood = '';
   double topMoodCount = 0;
+  List<dynamic> nearbyPsychiatrists = [];
+
+
+
+  Future<void> _handleFindPsychiatrists() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('📍 Please enable location services.')),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ Location permission denied.')),
+          );
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('⚠️ Location permission is permanently denied.')),
+        );
+        return;
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      print('📍 User location: ${position.latitude}, ${position.longitude}');
+
+      // Navigate with real coordinates
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NearbyPlacesScreen(
+            lat: position.latitude,
+            lon: position.longitude,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('❌ Error fetching location: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching location.')),
+      );
+    }
+  }
+
+
 
   late DatabaseReference userMoodRef;
   StreamSubscription<DatabaseEvent>? _moodSubscription;
@@ -219,9 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 20),
-
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.amber.shade700,
@@ -234,10 +294,35 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                                 icon: const Icon(Icons.refresh),
                                 label: const Text("Refresh"),
                               ),
-
                               const SizedBox(height: 24),
-
                               MoodTrivia(mood: topMood),
+                              const SizedBox(height: 20),
+
+                              // ✅ Find Nearby Psychiatrists Button
+                              Center(
+                                child: ElevatedButton(
+                                  onPressed: _handleFindPsychiatrists,
+                                  child: const Text("Find Nearby Psychiatrists"),
+                                ),
+                              ),
+
+                              // ✅ Display Results
+                              if (nearbyPsychiatrists.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: nearbyPsychiatrists.map((place) {
+                                      final name = place['properties']['name'] ?? 'Unnamed';
+                                      final address = place['properties']['formatted'] ?? 'No address';
+                                      return ListTile(
+                                        title: Text(name),
+                                        subtitle: Text(address),
+                                        leading: const Icon(Icons.local_hospital, color: Colors.teal),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
 
                               const SizedBox(height: 20),
                             ],
