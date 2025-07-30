@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: const [
                       SizedBox(height: 20),
                       Text(
-                        "WELCOME TO MINDLY",
+                        "WELCOME,We Are Your Companion",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
